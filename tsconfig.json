@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": false,
+    "types": ["node", "vitest/globals"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
+  },
+  "include": ["src/**/*.ts", "tests/**/*.ts", "vite.config.ts", "eslint.config.js"]
+}

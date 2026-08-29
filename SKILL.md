@@ -32,6 +32,41 @@ If the runtime cannot perform model-specific delegation:
 - use the safest available execution path;
 - record `DYNAMIC MODEL ROUTING: NOT AVAILABLE`.
 
+## Router Studio integration
+
+When this skill's Studio package is built and enabled, start it before meaningful routed work:
+
+```text
+npm run studio -- start --auto
+```
+
+The command binds to localhost and attempts to open a separate local browser page. It does not create a native Codex popup or panel. In a headless environment use `--no-open` and surface the printed URL. Respect `CODEX_ROUTER_STUDIO=0` or an explicit `--disabled`; observability must never block the engineering task.
+
+Studio truthfulness is mandatory:
+
+- parent and worker execution come from Codex runtime/rollout evidence;
+- a routing recommendation or spawn request is not worker execution;
+- do not mark a worker `WORKING` until its own rollout confirms its actual model;
+- do not emit fake workers to make the visualization look busy;
+- keep a coherent worker batch represented as one worker assignment;
+- do not estimate missing token usage; allow the UI to show `NOT EXPOSED`;
+- do not send secrets, raw prompts, source code, environment variables, credentials, or unsanitized tool output.
+
+The live adapter observes parent/session metadata, `turn_context`, actual subagent child-rollout identity, task start/completion/abort, reasoning/tool status, verification command evidence, and token checkpoints when present. The local lifecycle bridge is only for safe parent-owned context such as:
+
+```text
+npm run studio -- emit --type routing.recommended --to spark --reason "<sanitized reason>"
+npm run studio -- emit --type routing.transition --from spark --to luna --reason "<sanitized trigger>"
+npm run studio -- emit --type verification.started --verification "<check name>"
+npm run studio -- emit --type verification.completed --verification "<check name>" --result PASS|FAIL|UNKNOWN
+```
+
+Bridge events cannot create, activate, block, or complete workers. Those states require a runtime adapter with confirmed execution evidence.
+
+On escalation/downgrade, emit the sanitized routing transition after the real decision, then delegate through the runtime normally. Studio observability must never alter tier selection, retry policy, batching, acceptance criteria, or verification quality.
+
+See `references/studio-runtime.md` for the normalized evidence contract, live/replay behavior, privacy rules, and troubleshooting.
+
 ## Parent/orchestrator responsibilities
 
 The parent owns:
