@@ -6,6 +6,110 @@ Quality-aware parent/worker model routing for Codex.
 
 Codex Auto Router decomposes software-engineering work, delegates bounded subtasks to model-specific workers, automatically escalates/downgrades as evidence changes, and keeps verification standards invariant across handoffs.
 
+## Codex Router Studio
+
+Router Studio is the live, local observability surface for Auto Router. It renders the parent and every model tier as a small 2D workshop, with explicit `WORKING`, `THINKING`, `WAITING`, `IDLE`, `VERIFYING`, `BLOCKED`, and `DONE` states.
+
+![Codex Router Studio replay with Spark selected](docs/router-studio-replay.png)
+
+The Studio is deliberately evidence-driven:
+
+- a recommendation does not activate a worker;
+- a spawn request does not activate a worker;
+- a worker activates only after its own Codex rollout confirms the executing model in `turn_context` evidence;
+- missing token values render as `NOT EXPOSED`, never zero;
+- raw prompts, source code, environment variables, and tool output are not displayed by default.
+
+### Architecture
+
+| Module | Responsibility |
+|---|---|
+| Codex rollout adapter | Normalizes real session, model, child-rollout, lifecycle, verification, and token-checkpoint evidence. |
+| Studio state model | Applies truthful worker transitions and holds `DONE` briefly before returning a completed worker to `IDLE`. |
+| Local transport | Serves the UI and an SSE event stream on `127.0.0.1`; lifecycle writes require an ephemeral local token. |
+| Studio UI | Renders the six responsive workshop bays, activity feed, queue, route, timing, usage, and worker inspector. |
+| Replay adapter | Replays checked-in sanitized JSONL without access to local Codex session files. |
+
+The normalized Studio event interface is the seam between runtime evidence and presentation. Live rollouts and replay logs use the same reducer and UI.
+
+See [`references/studio-runtime.md`](references/studio-runtime.md) for the evidence contract and privacy model.
+
+### Install and launch
+
+Router Studio requires Node.js 20.19 or newer.
+
+```bash
+git clone https://github.com/vinsliu626/codex-auto-router.git
+cd codex-auto-router
+npm ci
+npm run build
+npm run studio -- start --auto
+```
+
+`start --auto` selects the most recently updated rollout under `CODEX_HOME/sessions`, starts the server on `http://127.0.0.1:4317`, watches matching child rollouts, and attempts to open a separate browser page. Codex does not currently expose a project-controlled native popup interface, so this is an ordinary local browser window/page—not a claimed native Codex panel.
+
+Use `--no-open` in headless environments and open the printed URL yourself. Disable Studio startup with either `--disabled` or `CODEX_ROUTER_STUDIO=0`.
+
+To follow a specific session instead of auto-detection:
+
+```bash
+npm run studio -- start --rollout /path/to/rollout.jsonl --no-open
+```
+
+### Replay and development
+
+The checked-in fixture is sanitized and works without Codex credentials or local session access:
+
+```bash
+npm run replay
+npm run replay:validate
+```
+
+Development and quality commands:
+
+```bash
+npm run dev
+npm run typecheck
+npm run lint
+npm test
+npm run build
+npm run check
+```
+
+`npm run dev` builds and launches the local Studio against the latest rollout. Rerun it after source edits; it is intentionally a small dependency-light server rather than a framework-specific development stack.
+
+### Parent lifecycle bridge
+
+Live worker execution comes only from runtime adapters. The token-protected bridge can add parent-owned routing, queue, warning, and verification context, but the server rejects bridge attempts to create or complete workers.
+
+```bash
+npm run studio -- emit --type routing.recommended --to spark --reason "Bounded UI batch"
+npm run studio -- emit --type routing.transition --from spark --to luna --reason "Integration risk discovered"
+npm run studio -- emit --type verification.started --verification "Production build"
+npm run studio -- emit --type verification.completed --verification "Production build" --result PASS
+```
+
+The launch command writes an ephemeral `.codex-router-studio/connection.json` file containing the local URL and event token, removes it on clean shutdown, and the directory is ignored by Git.
+
+### Real runtime validation
+
+When Codex CLI authentication and `gpt-5.3-codex-spark` are available, this command starts a live Studio, confirms the current parent from its rollout, launches a real read-only Spark worker, attaches the worker's own rollout, runs the repository test suite as visible parent verification, and writes a sanitized report under `artifacts/`:
+
+```bash
+npm run validate:runtime -- --parent-rollout /path/to/current-parent-rollout.jsonl --open
+```
+
+The validator fails if the requested and rollout-confirmed worker models differ, if Spark never completes/returns idle, if the parent cannot be confirmed, if another model is falsely activated, or if verification fails.
+
+### Troubleshooting
+
+- **All workers stay IDLE:** no actual child rollout was found. A recommendation is intentionally insufficient. Pass the exact parent rollout with `--rollout` and confirm the runtime writes child sessions under the same dated session directory.
+- **Parent is not visible:** `turn_context` model evidence was not present or the wrong rollout was selected. Use an explicit `--rollout` path.
+- **Usage says NOT EXPOSED:** the runtime did not publish that token field. This is expected and is not treated as zero.
+- **Browser did not open:** use `--no-open` and visit the printed localhost URL. GUI launching may be unavailable in remote/headless environments.
+- **Port already in use:** select another local port with `--port 4318`.
+- **Replay works but live mode does not:** replay validates the Studio itself; inspect whether the current Codex build persists `session_meta`, `turn_context`, and lifecycle events in JSONL.
+
 ## Model ladder
 
 | Tier | Role |
@@ -67,11 +171,11 @@ The verified Spark experiment also showed substantial cached context processing.
 
 Never claim a model switch because the policy recommended one. A routed task counts only when the runtime actually delegates to that worker/model. If model-specific delegation is unavailable, report the limitation rather than simulating routing.
 
-## Install
+## Install as a Codex skill
 
-Copy this repository as a skill directory into the skill location supported by your Codex environment, preserving `SKILL.md` and `references/` together. Confirm the skill appears in the available skill catalog before running routing benchmarks.
+Copy or link this repository as a skill directory into the skill location supported by your Codex environment, preserving `SKILL.md`, `references/`, and the Studio package together. Run `npm ci && npm run build` in that installed directory before enabling Studio. Confirm the skill appears in the available skill catalog before running routing benchmarks.
 
-A GitHub repository existing remotely does **not** mean the skill is installed in a local Codex environment.
+A GitHub repository existing remotely does **not** mean the skill or Studio is installed in a local Codex environment.
 
 ## Example
 

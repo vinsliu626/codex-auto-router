@@ -1,0 +1,38 @@
+{
+  "name": "codex-auto-router",
+  "version": "0.2.0",
+  "description": "Quality-aware Codex routing with a truthful live Router Studio",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20.19"
+  },
+  "bin": {
+    "codex-router-studio": "dist/cli.js"
+  },
+  "scripts": {
+    "clean": "node scripts/clean.mjs",
+    "build": "npm run clean && npm run build:server && npm run build:web",
+    "build:server": "tsc -p tsconfig.server.json",
+    "build:web": "vite build",
+    "dev": "npm run build && node --watch dist/cli.js start --auto --no-open",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm run lint && npm test && npm run build",
+    "studio": "node dist/cli.js",
+    "replay": "npm run build && node dist/cli.js replay fixtures/spark-replay.jsonl",
+    "replay:validate": "npm run build && node dist/cli.js replay fixtures/spark-replay.jsonl --headless",
+    "validate:runtime": "npm run build && node dist/cli.js validate-runtime"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.10.1",
+    "eslint": "^10.9.1",
+    "jsdom": "^27.2.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.68.0",
+    "vite": "^7.2.4",
+    "vitest": "^4.0.14"
+  }
+}
