@@ -8,9 +8,11 @@ Codex Auto Router decomposes software-engineering work, delegates bounded subtas
 
 ## Codex Router Studio
 
-Router Studio is the live, local observability surface for Auto Router. It renders the parent and every model tier as a small 2D workshop, with explicit `WORKING`, `THINKING`, `WAITING`, `IDLE`, `VERIFYING`, `BLOCKED`, and `DONE` states.
+Router Studio is the live, local observability surface for Auto Router. It renders the parent and every model tier as a bright anime-inspired 2D office simulation, with explicit `WORKING`, `THINKING`, `WAITING`, `IDLE`, `VERIFYING`, `BLOCKED`, and `DONE` states.
 
-![Codex Router Studio replay with Spark selected](docs/router-studio-replay.png)
+![Bright Codex Router Studio replay with six chibi worker workstations](docs/router-studio-v2.png)
+
+The six original workstation illustrations are repository-hosted, optimized `960×600` WebP assets. They share one locked chibi art bible and contain no generated UI text, logos, or dynamic status labels. Runtime status remains accessible HTML/CSS layered over the art; see [`references/studio-art.md`](references/studio-art.md) for the asset manifest, generation prompts, and validation checklist.
 
 The Studio is deliberately evidence-driven:
 
@@ -18,6 +20,7 @@ The Studio is deliberately evidence-driven:
 - a spawn request does not activate a worker;
 - a worker activates only after its own Codex rollout confirms the executing model in `turn_context` evidence;
 - missing token values render as `NOT EXPOSED`, never zero;
+- progress, complexity, risk, and quota telemetry remain `NOT EXPOSED` unless a trustworthy runtime source provides them;
 - raw prompts, source code, environment variables, and tool output are not displayed by default.
 
 ### Architecture
@@ -27,7 +30,7 @@ The Studio is deliberately evidence-driven:
 | Codex rollout adapter | Normalizes real session, model, child-rollout, lifecycle, verification, and token-checkpoint evidence. |
 | Studio state model | Applies truthful worker transitions and holds `DONE` briefly before returning a completed worker to `IDLE`. |
 | Local transport | Serves the UI and an SSE event stream on `127.0.0.1`; lifecycle writes require an ephemeral local token. |
-| Studio UI | Renders the six responsive workshop bays, activity feed, queue, route, timing, usage, and worker inspector. |
+| Studio UI | Renders six responsive illustrated workstations, state overlays, activity feed, queue, route, timing, usage, worker inspector, and working navigation sections. |
 | Replay adapter | Replays checked-in sanitized JSONL without access to local Codex session files. |
 
 The normalized Studio event interface is the seam between runtime evidence and presentation. Live rollouts and replay logs use the same reducer and UI.
